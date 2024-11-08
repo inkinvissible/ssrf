@@ -1,43 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>SSRF Test Revisado</title>
+    <title>SSRF Test con iframe</title>
 </head>
 <body>
-  <script>
-    window.onload = function() {
-      const webhookUrl = 'https://webhook.site/7cdc61db-d2f3-4e50-aab4-9744f57a2a32';
+    <h1>SSRF Test</h1>
+    <div id="iframeContainer"></div>
+    <button id="loadIframe">Cargar iframe</button>
 
-      // Intento 1: Usando Image
-      const img = new Image();
-      img.onload = () => console.log('Imagen cargada exitosamente');
-      img.onerror = () => console.log('Error al cargar la imagen (esto es normal)');
-      img.src = webhookUrl + '?source=img_tag&time=' + Date.now();
-
-      // Intento 2: Usando iframe
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = webhookUrl + '?source=iframe&time=' + Date.now();
-      document.body.appendChild(iframe);
-
-      // Intento 3: Usando script tag
-      const script = document.createElement('script');
-      script.src = webhookUrl + '?source=script_tag&time=' + Date.now();
-      document.body.appendChild(script);
-
-      // Intento 4: Usando XMLHttpRequest (fallará debido a CORS, pero intentémoslo)
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', webhookUrl + '?source=xhr&time=' + Date.now(), true);
-      xhr.onload = function() {
-        console.log('XHR respuesta:', xhr.responseText);
-      };
-      xhr.onerror = function() {
-        console.log('XHR error (esto es esperado debido a CORS)');
-      };
-      xhr.send();
-
-      console.log('Intentos de conexión realizados. Verifica tu webhook para ver si se registraron las solicitudes.');
-    }
-  </script>
+    <script>
+        const webhookUrl = 'https://webhook.site/7cdc61db-d2f3-4e50-aab4-9744f57a2a32';
+        
+        document.getElementById('loadIframe').addEventListener('click', function() {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';  // Ocultar el iframe
+            iframe.src = webhookUrl + '?source=iframe&time=' + Date.now();
+            
+            iframe.onload = function() {
+                console.log('iframe cargado exitosamente');
+                // Intenta acceder al contenido del iframe (esto fallará si no es del mismo origen)
+                try {
+                    console.log(iframe.contentDocument);
+                } catch (e) {
+                    console.log('No se puede acceder al contenido del iframe debido a la política del mismo origen');
+                }
+            };
+            
+            iframe.onerror = function() {
+                console.log('Error al cargar el iframe');
+            };
+            
+            document.getElementById('iframeContainer').appendChild(iframe);
+        });
+        
+        // Intento adicional con Image para comparación
+        const img = new Image();
+        img.onload = () => console.log('Imagen cargada exitosamente');
+        img.onerror = () => console.log('Error al cargar la imagen (esto es normal)');
+        img.src = webhookUrl + '?source=img_tag&time=' + Date.now();
+    </script>
 </body>
 </html>
